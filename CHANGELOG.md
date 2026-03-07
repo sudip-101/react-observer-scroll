@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.1] - 2026-03-07
+
+### Fixed
+
+- Drop Node 18 from CI matrix (jsdom 28 requires Node 20+)
+
+### Added
+
+- Vercel deployment config for live demo site
+- "View live demo" link in README
+
 ## [1.0.0] - 2026-03-07
 
 ### Added
