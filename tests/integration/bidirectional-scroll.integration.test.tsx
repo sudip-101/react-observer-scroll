@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, act } from '@testing-library/react';
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useLayoutEffect, useRef } from 'react';
 import { BidirectionalScroll } from '../../lib/components/BidirectionalScroll';
 import { mockIntersectionObserver } from '../helpers/mock-intersection-observer';
 
@@ -133,6 +133,62 @@ describe('BidirectionalScroll integration', () => {
     // Only previous should have been called
     expect(prevSpy).toHaveBeenCalledTimes(1);
     expect(nextSpy).not.toHaveBeenCalled();
+  });
+
+  it('does not auto-trigger onLoadPrevious when consumer scrolls to bottom on mount', () => {
+    const prevSpy = vi.fn();
+    const nextSpy = vi.fn();
+
+    // Simulates the recommended chat pattern: scroll to bottom on initial mount
+    // so the top sentinel is not visible and doesn't auto-fire.
+    const ChatWithScrollToBottom = () => {
+      const containerRef = useRef<HTMLElement>(null);
+      const [messages] = useState(createMessages(50, 10));
+      const hasScrolled = useRef(false);
+
+      useLayoutEffect(() => {
+        if (containerRef.current && !hasScrolled.current) {
+          hasScrolled.current = true;
+          // In real DOM this moves scroll to bottom; in jsdom we simulate
+          // the effect: the top sentinel is NOT in the viewport
+          containerRef.current.scrollTop = containerRef.current.scrollHeight;
+        }
+      }, []);
+
+      return (
+        <BidirectionalScroll
+          ref={containerRef}
+          dataLength={messages.length}
+          onLoadPrevious={prevSpy}
+          hasPrevious={true}
+          isLoadingPrevious={false}
+          onLoadNext={nextSpy}
+          hasNext={true}
+          isLoadingNext={false}
+          style={{ height: '400px' }}
+        >
+          {messages.map((msg) => (
+            <div key={msg.id}>{msg.text}</div>
+          ))}
+        </BidirectionalScroll>
+      );
+    };
+
+    render(<ChatWithScrollToBottom />);
+
+    // After mount with scroll-to-bottom, neither callback should have fired
+    // (sentinels exist but our mock only fires on explicit triggerIntersection)
+    expect(prevSpy).not.toHaveBeenCalled();
+    expect(nextSpy).not.toHaveBeenCalled();
+
+    // Only explicit bottom sentinel trigger should fire onLoadNext
+    const sentinels = screen.getAllByTestId('ros-sentinel');
+    const bottomSentinel = sentinels[sentinels.length - 1]!;
+    act(() => {
+      io.triggerIntersection(bottomSentinel, true);
+    });
+    expect(nextSpy).toHaveBeenCalledTimes(1);
+    expect(prevSpy).not.toHaveBeenCalled();
   });
 
   it('never shows both loaders at the same time', () => {

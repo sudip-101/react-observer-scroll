@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 
 import type { ScrollIndicatorInfo } from '../../lib';
 import { BidirectionalScroll } from '../../lib';
@@ -34,9 +34,22 @@ export const BidirectionalScrollDemo = () => {
   const [view, setView] = useState<'preview' | 'code'>('preview');
   const [activeFile, setActiveFile] = useState(0);
 
+  const hasScrolledInitial = useRef(false);
+
   useEffect(() => {
     loadInitial();
   }, [loadInitial]);
+
+  // Scroll to bottom before observers activate so the top sentinel
+  // isn't visible on mount — prevents auto-triggering loadPrevious.
+  // useLayoutEffect runs after child effects (useImperativeHandle sets ref)
+  // but before useEffect (where observers are created).
+  useLayoutEffect(() => {
+    if (!isInitialLoading && containerRef.current && !hasScrolledInitial.current) {
+      hasScrolledInitial.current = true;
+      containerRef.current.scrollTop = containerRef.current.scrollHeight;
+    }
+  }, [isInitialLoading]);
 
   const handleScrollIndicator = (info: ScrollIndicatorInfo) => {
     setShowScrollDown(info.scrolledFromEnd > 200);
