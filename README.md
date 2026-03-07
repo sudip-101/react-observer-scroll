@@ -2,7 +2,7 @@
 
 Performant infinite scroll for React, powered by IntersectionObserver.
 
-[![npm version](https://img.shields.io/npm/v/react-observer-scroll.svg?style=flat-square&color=0070f3)](https://www.npmjs.com/package/react-observer-scroll) [![license](https://img.shields.io/npm/l/react-observer-scroll.svg?style=flat-square)](https://github.com/sudip-101/react-observer-scroll/blob/main/LICENSE) [![downloads](https://img.shields.io/npm/dm/react-observer-scroll.svg?style=flat-square)](https://www.npmjs.com/package/react-observer-scroll) [![bundle size](https://img.shields.io/bundlephobia/minzip/react-observer-scroll?style=flat-square&color=0070f3)](https://bundlephobia.com/package/react-observer-scroll)
+[![npm version](https://img.shields.io/npm/v/react-observer-scroll.svg?style=flat-square&color=0070f3)](https://www.npmjs.com/package/react-observer-scroll) [![license](https://img.shields.io/npm/l/react-observer-scroll.svg?style=flat-square)](https://github.com/sudip-101/react-observer-scroll/blob/main/LICENSE) [![downloads](https://img.shields.io/badge/downloads-0%2Fmonth-brightgreen?style=flat-square)](https://www.npmjs.com/package/react-observer-scroll) [![bundle size](https://img.shields.io/badge/bundle-1.77kB%20gzip-0070f3?style=flat-square)](https://bundlephobia.com/package/react-observer-scroll)
 
 ---
 
