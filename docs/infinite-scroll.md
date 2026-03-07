@@ -1,52 +1,208 @@
+# InfiniteScroll — Implementation Reference
+
 ## Overview
 
-This document outlines the production-grade implementation of the component for react-omni-scroll. It upgrades the previous JavaScript implementation to strict TypeScript, ensures SSR compatibility, and shifts to a safer "Sentinel Node" pattern instead of cloning React children.
+`InfiniteScroll` is a single-direction infinite scroll component powered by the browser's native IntersectionObserver API. It detects when a sentinel element enters the viewport and fires a callback to load more data.
 
-## Architectural Upgrades
+**Location:** `lib/components/InfiniteScroll.tsx`
 
-- **Replacing cloneElement with Sentinels:** The previous code used React.cloneElement to attach the observer ref directly to the first or last child. This is a common anti-pattern in React libraries because if a consumer passes a custom component (e.g., ) that doesn't use forwardRef, the library breaks silently. Instead, we will inject a visually hidden, zero-pixel
+## Architecture
 
-  (a "sentinel") to act as the exact target for the observer.
+### Component Hierarchy
 
-- **SSR Safe Root Resolution:** When implementing scrollableTarget as a string, document.querySelector will crash if it runs on a server (like in Next.js). We will wrap the root resolution in a useEffect so it only fires on the client.
-- **Strict Typing:** Exporting comprehensive interfaces ensures excellent IDE intellisense for consumers.
+```
+InfiniteScroll (forwardRef)
+  ├── useResolvedRoot()        — resolves CSS selector to Element (SSR-safe)
+  ├── useIntersectionObserver() — creates observer, returns callback ref
+  └── Sentinel                 — zero-height invisible div, observer target
+```
 
-## 1\. Type Definitions
+### Internal Hooks
 
-TypeScript
+| Hook | Purpose | Source |
+|------|---------|--------|
+| `useResolvedRoot` | Resolves `scrollableTarget` CSS selector to a DOM Element via `useSyncExternalStore`. Returns `null` for viewport. SSR-safe. | `lib/hooks/useResolvedRoot.ts` |
+| `useIntersectionObserver` | Creates/manages an IntersectionObserver. Returns a callback ref. Only fires `onIntersect` when `entry.isIntersecting === true`. | `lib/hooks/useIntersectionObserver.ts` |
 
-Plain textANTLR4BashCC#CSSCoffeeScriptCMakeDartDjangoDockerEJSErlangGitGoGraphQLGroovyHTMLJavaJavaScriptJSONJSXKotlinLaTeXLessLuaMakefileMarkdownMATLABMarkupObjective-CPerlPHPPowerShell.propertiesProtocol BuffersPythonRRubySass (Sass)Sass (Scss)SchemeSQLShellSwiftSVGTSXTypeScriptWebAssemblyYAMLXML` import { ReactNode } from 'react';  export type ScrollDirection = 'top' | 'bottom';  export interface InfiniteScrollProps {    /** The content to be rendered inside the scroll container */    children: ReactNode;    /** Callback fired when the sentinel enters the viewport */    onLoadMore: () => void | Promise;    /** Boolean to indicate if more data can be fetched */    hasMore: boolean;    /** Boolean to prevent duplicate fetches while loading */    isLoading: boolean;    /** Optional element to display while loading new data */    loader?: ReactNode;    /** Optional element to display when hasMore is false */    endMessage?: ReactNode;    /** String selector (e.g., '#scroll-container') to use as the observer root. Defaults to viewport. */    scrollableTarget?: string;    /** Margin around the root. Can have values similar to the CSS margin property. */    rootMargin?: string;    /** Number between 0 and 1 indicating the percentage of the target's visibility needed to trigger. */    threshold?: number | number[];    /** Direction to append new items. Defaults to 'bottom'. */    direction?: ScrollDirection;  } `
+### Sentinel Element
 
-## 2\. The Root Resolver Hook (useResolvedRoot)
+An invisible `<div>` (0x0, `visibility: hidden`, `aria-hidden="true"`) placed in the DOM as the observer's target. Unlike `React.cloneElement`, this approach never breaks with components that don't forward refs.
 
-This hook safely resolves the scrollableTarget string into an actual HTMLElement, ensuring it does not break during Server-Side Rendering.
+```tsx
+// lib/components/Sentinel.tsx
+<div
+  ref={ref}
+  style={{ height: 0, width: 0, visibility: 'hidden', /* ... */ }}
+  aria-hidden="true"
+  data-testid="ros-sentinel"
+/>
+```
 
-TypeScript
+## Props
 
-Plain textANTLR4BashCC#CSSCoffeeScriptCMakeDartDjangoDockerEJSErlangGitGoGraphQLGroovyHTMLJavaJavaScriptJSONJSXKotlinLaTeXLessLuaMakefileMarkdownMATLABMarkupObjective-CPerlPHPPowerShell.propertiesProtocol BuffersPythonRRubySass (Sass)Sass (Scss)SchemeSQLShellSwiftSVGTSXTypeScriptWebAssemblyYAMLXML` import { useState, useEffect } from 'react';  export const useResolvedRoot = (scrollableTarget?: string): Element | null | undefined => {    const [root, setRoot] = useState(undefined);    useEffect(() => {      if (typeof window === 'undefined') return;      if (scrollableTarget) {        const element = document.querySelector(scrollableTarget);        setRoot(element);      } else {        // If no target provided, observer defaults to browser viewport (null)        setRoot(null);      }    }, [scrollableTarget]);    return root;  }; `
+```typescript
+interface InfiniteScrollProps {
+  children: ReactNode;
+  onLoadMore: () => void | Promise<void>;
+  hasMore: boolean;
+  isLoading: boolean;
+  loader?: ReactNode;                    // Shown when isLoading && hasMore
+  endMessage?: ReactNode;                // Shown when !hasMore
+  scrollableTarget?: string;             // CSS selector for observer root (default: viewport)
+  rootMargin?: string;                   // Default: "0px"
+  threshold?: number | number[];         // Default: 0
+  direction?: 'top' | 'bottom';         // Default: 'bottom'
+  className?: string;
+  style?: CSSProperties;
+  as?: ElementType;                      // Default: 'div'
+}
+```
 
-## 3\. The Observer Hook (useSentinelObserver)
+The component also accepts a `ref` via `forwardRef` that exposes the wrapper element.
 
-A modernized version of the custom observer hook, fully typed. It uses a callback ref approach to gracefully handle elements mounting and unmounting.
+## Element Ordering (Critical)
 
-TypeScript
+Sentinel placement determines whether the component works correctly or enters an infinite load loop.
 
-Plain textANTLR4BashCC#CSSCoffeeScriptCMakeDartDjangoDockerEJSErlangGitGoGraphQLGroovyHTMLJavaJavaScriptJSONJSXKotlinLaTeXLessLuaMakefileMarkdownMATLABMarkupObjective-CPerlPHPPowerShell.propertiesProtocol BuffersPythonRRubySass (Sass)Sass (Scss)SchemeSQLShellSwiftSVGTSXTypeScriptWebAssemblyYAMLXML` import { useEffect, useRef, useCallback } from 'react';  interface UseSentinelObserverProps {    root?: Element | null;    rootMargin?: string;    threshold?: number | number[];    enabled: boolean;    onIntersect: () => void;  }  export const useSentinelObserver = ({    root,    rootMargin,    threshold,    enabled,    onIntersect,  }: UseSentinelObserverProps) => {    const observerRef = useRef(null);    const targetRef = useRef(null);    const onIntersectRef = useRef(onIntersect);    // Keep callback fresh without re-triggering the observer    useEffect(() => {      onIntersectRef.current = onIntersect;    }, [onIntersect]);    useEffect(() => {      if (!enabled) {        observerRef.current?.disconnect();        return;      }      observerRef.current = new IntersectionObserver(        ([entry]) => {          if (entry.isIntersecting) {            onIntersectRef.current();          }        },        { root, rootMargin, threshold }      );      if (targetRef.current) {        observerRef.current.observe(targetRef.current);      }      return () => observerRef.current?.disconnect();    }, [enabled, root, rootMargin, threshold]);    const setTargetNode = useCallback((node: Element | null) => {      if (targetRef.current && observerRef.current) {        observerRef.current.unobserve(targetRef.current);      }      targetRef.current = node;      if (node && observerRef.current) {        observerRef.current.observe(node);      }    }, []);    return setTargetNode;  }; `
+**direction="bottom"** (default):
+```
+children → sentinel → loader → endMessage
+```
 
-## 4\. The Main Component (InfiniteScroll)
+**direction="top"**:
+```
+endMessage → loader → sentinel → children
+```
 
-The final component stitches it all together, replacing React.cloneElement with an explicit, visually hidden sentinel
+The sentinel is always at the **end of the scroll direction** — it only becomes visible when the user has scrolled through all existing content. Placing it before content causes it to be immediately visible on mount, firing `onLoadMore` in a loop.
 
-.
+## How It Works
 
-TypeScript
+```
+1. Component mounts
+   → useResolvedRoot resolves scrollableTarget (or null for viewport)
+   → useIntersectionObserver creates observer with { root, rootMargin, threshold }
+   → Sentinel renders, callback ref attaches it to the observer
 
-Plain textANTLR4BashCC#CSSCoffeeScriptCMakeDartDjangoDockerEJSErlangGitGoGraphQLGroovyHTMLJavaJavaScriptJSONJSXKotlinLaTeXLessLuaMakefileMarkdownMATLABMarkupObjective-CPerlPHPPowerShell.propertiesProtocol BuffersPythonRRubySass (Sass)Sass (Scss)SchemeSQLShellSwiftSVGTSXTypeScriptWebAssemblyYAMLXML` import React, { useCallback } from 'react';  // (Imports for types and hooks here)  export const InfiniteScroll: React.FC = ({    children,    onLoadMore,    hasMore,    isLoading,    loader,    endMessage,    scrollableTarget,    rootMargin = '0px',    threshold = 0,    direction = 'bottom',  }) => {    const root = useResolvedRoot(scrollableTarget);    const handleIntersect = useCallback(() => {      if (hasMore && !isLoading) {        onLoadMore();      }    }, [hasMore, isLoading, onLoadMore]);    const setSentinelRef = useSentinelObserver({      root,      rootMargin,      threshold,      enabled: hasMore && !isLoading,      onIntersect: handleIntersect,    });    const isTop = direction === 'top';    return ( `
+2. User scrolls to end of content
+   → Sentinel enters viewport
+   → Observer fires callback → onIntersect → onLoadMore()
 
-          `{isTop && (          <>            {!hasMore && !isLoading && endMessage}            {hasMore && isLoading && loader}`
+3. Consumer sets isLoading=true
+   → Observer disabled (enabled: hasMore && !isLoading)
+   → No duplicate calls while loading
 
-          `{hasMore &&   }        )}        {children}        {!isTop && (          <>            {hasMore &&   }            {hasMore && isLoading && loader}            {!hasMore && !isLoading && endMessage}        )}    );  };`
+4. New data arrives, consumer sets isLoading=false
+   → Observer re-enabled, sentinel re-observed
+   → Cycle repeats until hasMore=false
 
-This plan removes the brittle element cloning, adds bulletproof TypeScript support, and safely accommodates SSR environments like Next.js.
+5. hasMore becomes false
+   → Sentinel removed from DOM
+   → endMessage rendered
+```
 
-Would you like me to draft the implementation plan for bidirectional-scroll.md next, focusing on that critical useLayoutEffect DOM-measuring logic we discussed?
+## Observer Lifecycle
+
+The `useIntersectionObserver` hook manages the observer:
+
+- **Creation**: In a `useEffect` when `enabled`, `root`, `rootMargin`, or `threshold` change
+- **Callback stability**: `onIntersect` is stored in a `useRef` — changing the callback identity does NOT recreate the observer
+- **Threshold stability**: Array thresholds are serialized to a string (`join(',')`) for dependency comparison
+- **Cleanup**: `observer.disconnect()` on unmount or when options change
+- **SSR**: Returns a no-op ref when `canUseIntersectionObserver()` is false
+
+## Conditional Rendering Logic
+
+```typescript
+const sentinel = hasMore ? <Sentinel ref={sentinelRef} /> : null;
+const loaderContent = isLoading && hasMore ? loader : null;
+const endContent = !hasMore ? endMessage : null;
+```
+
+| State | Sentinel | Loader | End Message |
+|-------|----------|--------|-------------|
+| `hasMore=true, isLoading=false` | Rendered + observed | Hidden | Hidden |
+| `hasMore=true, isLoading=true` | Rendered, NOT observed | Shown | Hidden |
+| `hasMore=false` | Not rendered | Hidden | Shown |
+
+## Usage Example
+
+```tsx
+import { InfiniteScroll } from 'react-observer-scroll';
+
+const PhotoFeed = () => {
+  const { photos, isLoading, hasMore, loadMore } = usePhotos();
+
+  return (
+    <InfiniteScroll
+      onLoadMore={loadMore}
+      hasMore={hasMore}
+      isLoading={isLoading}
+      rootMargin="200px"
+      loader={<Skeleton />}
+      endMessage={<p>No more photos</p>}
+    >
+      <div className="grid grid-cols-3 gap-4">
+        {photos.map((photo) => (
+          <PhotoCard key={photo.id} photo={photo} />
+        ))}
+      </div>
+    </InfiniteScroll>
+  );
+};
+```
+
+### With a Custom Scrollable Container
+
+```tsx
+<div id="scroll-container" style={{ height: '500px', overflow: 'auto' }}>
+  <InfiniteScroll
+    onLoadMore={loadMore}
+    hasMore={hasMore}
+    isLoading={isLoading}
+    scrollableTarget="#scroll-container"
+  >
+    {items.map((item) => <Item key={item.id} {...item} />)}
+  </InfiniteScroll>
+</div>
+```
+
+### With direction="top" (Reverse Chronological)
+
+```tsx
+<InfiniteScroll
+  onLoadMore={loadOlder}
+  hasMore={hasOlder}
+  isLoading={isLoadingOlder}
+  direction="top"
+>
+  {logs.map((log) => <LogEntry key={log.id} {...log} />)}
+</InfiniteScroll>
+```
+
+## Key Design Decisions
+
+1. **No internal state**: The library does not manage loading/pagination state. The consumer owns `isLoading`, `hasMore`, and data. This decouples from any data-fetching strategy (React Query, SWR, plain fetch, etc.).
+
+2. **Sentinel over cloneElement**: A dedicated invisible `<div>` avoids the brittle `React.cloneElement` pattern that breaks with components that don't forward refs.
+
+3. **`enabled` prop gates the observer**: Setting `enabled: hasMore && !isLoading` prevents duplicate `onLoadMore` calls during in-flight requests without manual debounce/throttle.
+
+4. **Viewport as default root**: When no `scrollableTarget` is provided, `root=null` gives the browser viewport — the most common use case for window-level scrolling.
+
+5. **`useResolvedRoot` with `useSyncExternalStore`**: Ensures SSR safety. `document.querySelector` is only called on the client, and the result is cached until `scrollableTarget` changes.
+
+## Testing
+
+23 unit tests in `tests/components/InfiniteScroll.test.tsx` + 5 integration tests in `tests/integration/infinite-scroll.integration.test.tsx`.
+
+Tests verify:
+- Sentinel placement per direction (before/after children)
+- Element ordering: children > sentinel > loader > endMessage
+- Observer disabled when `isLoading=true` (sentinel exists but not observed)
+- Observer re-enabled when `isLoading` transitions true → false
+- Sentinel removed from DOM when `hasMore=false`
+- `scrollableTarget` resolved to observer root
+- `as`, `className`, `style`, `ref` pass-through
+- Multi-page sequential loading (integration)
+- No auto-load on mount (integration)

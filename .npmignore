@@ -1,0 +1,29 @@
+# Source
+lib/
+src/
+tests/
+docs/
+
+# Config
+.github/
+.claude/
+.vscode/
+tsconfig.json
+tsconfig.lib.json
+tsconfig.app.json
+vite.config.ts
+vitest.config.ts
+eslint.config.js
+.prettierrc
+.gitignore
+.npmignore
+CLAUDE.md
+
+# Build artifacts
+dist-demo/
+coverage/
+node_modules/
+
+# Misc
+*.log
+.DS_Store

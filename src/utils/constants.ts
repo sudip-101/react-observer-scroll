@@ -1,0 +1,4 @@
+export const CONSTANTS = {
+  FEED_ITEMS_LIMIT: 12,
+  MESSAGES_LIMIT: 20,
+};
