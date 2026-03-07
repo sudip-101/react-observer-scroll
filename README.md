@@ -10,6 +10,8 @@ Production-grade [`InfiniteScroll`](#infinitescroll) and [`BidirectionalScroll`]
 
 Zero dependencies. Tree-shakeable. TypeScript-first. SSR-safe.
 
+[**View live demo →**](https://react-observer-scroll.vercel.app)
+
 **Jump to:** [Key Features](#key-features) | [Installation](#installation) | [Usage](#usage) | [How It Works](#how-it-works) | [Examples](#examples) | [Why IntersectionObserver?](#why-intersectionobserver) | [FAQs](#faqs)
 
 ---

@@ -31,7 +31,12 @@ jobs:
           node-version: ${{ matrix.node-version }}
           cache: npm
       - run: npm ci
-      - run: npm run test:coverage
+      - name: Run tests with coverage
+        if: matrix.node-version != 18
+        run: npm run test:coverage
+      - name: Run tests without coverage
+        if: matrix.node-version == 18
+        run: npm test
 
   build:
     runs-on: ubuntu-latest
