@@ -94,3 +94,4 @@ export const InfiniteScroll = forwardRef<HTMLElement, InfiniteScrollProps>(
     );
   },
 );
+InfiniteScroll.displayName = 'InfiniteScroll';

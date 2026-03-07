@@ -144,3 +144,4 @@ export const BidirectionalScroll = forwardRef<
     );
   },
 );
+BidirectionalScroll.displayName = 'BidirectionalScroll';

@@ -1,4 +1,4 @@
-import { ReactNode, CSSProperties, ElementType } from 'react';
+import type { ReactNode, CSSProperties, ElementType } from 'react';
 
 export type ScrollDirection = 'top' | 'bottom';
 
