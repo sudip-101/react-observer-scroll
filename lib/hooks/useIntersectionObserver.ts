@@ -1,6 +1,7 @@
-import { useEffect, useRef, useCallback } from 'react';
-import { canUseIntersectionObserver } from '../utils/ssr';
+import { useCallback, useEffect, useRef } from 'react';
+
 import type { UseIntersectionObserverOptions } from '../types';
+import { canUseIntersectionObserver } from '../utils/ssr';
 
 /**
  * Foundational hook for observing element intersection with a root element or viewport.
@@ -33,9 +34,7 @@ export const useIntersectionObserver = ({
   const onIntersectRef = useRef(onIntersect);
 
   // Keep callback fresh without recreating the observer
-  useEffect(() => {
-    onIntersectRef.current = onIntersect;
-  }, [onIntersect]);
+  onIntersectRef.current = onIntersect;
 
   // Serialize threshold for stable dependency comparison
   const thresholdStr = Array.isArray(threshold)
@@ -73,6 +72,7 @@ export const useIntersectionObserver = ({
   }, [enabled, root, rootMargin, thresholdStr]);
 
   // Callback ref: handles DOM node attachment/detachment
+  // useCallback ensures stable identity so React doesn't re-call the ref on every render
   const setTargetRef = useCallback((node: Element | null) => {
     // Unobserve the previous node
     if (targetRef.current && observerRef.current) {
