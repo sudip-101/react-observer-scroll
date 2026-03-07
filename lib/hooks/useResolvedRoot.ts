@@ -1,4 +1,5 @@
-import { useSyncExternalStore, useCallback } from 'react';
+import { useCallback, useSyncExternalStore } from 'react';
+
 import { canUseDOM } from '../utils/ssr';
 
 /**
@@ -8,19 +9,19 @@ import { canUseDOM } from '../utils/ssr';
  * @param scrollableTarget - CSS selector for the scrollable ancestor
  * @returns The resolved Element or null (viewport)
  */
-export function useResolvedRoot(
-  scrollableTarget?: string,
-): Element | null {
+export const useResolvedRoot = (scrollableTarget?: string): Element | null => {
   const getSnapshot = useCallback(() => {
     if (!canUseDOM || !scrollableTarget) return null;
 
     const element = document.querySelector(scrollableTarget);
+
     if (!element) {
       console.warn(
         `[react-observer-scroll] scrollableTarget "${scrollableTarget}" not found in DOM.`,
       );
       return null;
     }
+
     return element;
   }, [scrollableTarget]);
 
@@ -32,4 +33,4 @@ export function useResolvedRoot(
   }, []);
 
   return useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
-}
+};

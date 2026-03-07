@@ -1,14 +1,22 @@
-import { forwardRef, useCallback, type ElementType } from 'react';
+import { type ElementType, forwardRef, useCallback } from 'react';
+
 import { useIntersectionObserver } from '../hooks/useIntersectionObserver';
 import { useResolvedRoot } from '../hooks/useResolvedRoot';
-import { Sentinel } from './Sentinel';
 import type { InfiniteScrollProps } from '../types';
+import { Sentinel } from './Sentinel';
 
 /**
  * Single-direction infinite scroll component powered by IntersectionObserver.
  *
- * Element order for direction="bottom": loader | sentinel > children > endMessage
- * Element order for direction="top": endMessage > children > sentinel | loader
+ * Element order for direction="bottom": children > sentinel > loader > endMessage
+ * Element order for direction="top": endMessage > loader > sentinel > children
+ *
+ * The sentinel is placed at the END of the scroll direction so it only becomes
+ * visible when the user has scrolled through all current content. This prevents
+ * the observer from firing immediately on mount and loading all pages at once.
+ *
+ * When no scrollableTarget is provided, the observer root is null (viewport),
+ * which is the correct default for window-level scrolling.
  *
  * @example
  * ```tsx
@@ -24,7 +32,7 @@ import type { InfiniteScrollProps } from '../types';
  * ```
  */
 export const InfiniteScroll = forwardRef<HTMLElement, InfiniteScrollProps>(
-  function InfiniteScroll(
+  (
     {
       children,
       onLoadMore,
@@ -41,7 +49,7 @@ export const InfiniteScroll = forwardRef<HTMLElement, InfiniteScrollProps>(
       as,
     },
     ref,
-  ) {
+  ) => {
     const root = useResolvedRoot(scrollableTarget);
 
     const handleIntersect = useCallback(() => {
@@ -65,23 +73,22 @@ export const InfiniteScroll = forwardRef<HTMLElement, InfiniteScrollProps>(
     const endContent = !hasMore ? endMessage : null;
 
     if (direction === 'top') {
-      // Reverse order: endMessage > children > sentinel | loader
       return (
         <Component ref={ref} className={className} style={style}>
           {endContent}
-          {children}
-          {sentinel}
           {loaderContent}
+          {sentinel}
+          {children}
         </Component>
       );
     }
 
-    // Bottom (default): loader | sentinel > children > endMessage
+    // Bottom (default): children > sentinel > loader > endMessage
     return (
       <Component ref={ref} className={className} style={style}>
-        {loaderContent}
-        {sentinel}
         {children}
+        {sentinel}
+        {loaderContent}
         {endContent}
       </Component>
     );

@@ -9,8 +9,8 @@ export default defineConfig({
     setupFiles: ['./tests/setup.ts'],
     coverage: {
       provider: 'v8',
-      include: ['src/**/*.{ts,tsx}'],
-      exclude: ['src/index.ts', 'src/types/**'],
+      include: ['lib/**/*.{ts,tsx}'],
+      exclude: ['lib/index.ts', 'lib/types/**'],
       thresholds: {
         statements: 95,
         branches: 90,

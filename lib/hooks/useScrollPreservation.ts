@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef, type RefObject } from 'react';
+import { type RefObject, useLayoutEffect, useRef } from 'react';
 
 /**
  * Preserves scroll position when content is prepended to a scrollable container.
@@ -8,11 +8,11 @@ import { useLayoutEffect, useRef, type RefObject } from 'react';
  * @param dataLength - Current number of items (triggers restoration when changed)
  * @param isLoadingPrevious - Whether a prepend load is in progress
  */
-export function useScrollPreservation(
+export const useScrollPreservation = (
   containerRef: RefObject<HTMLElement | null>,
   dataLength: number,
   isLoadingPrevious: boolean,
-): void {
+): void => {
   const prevScrollHeightRef = useRef(0);
   const prevScrollTopRef = useRef(0);
   const isPrependingRef = useRef(false);
@@ -36,4 +36,4 @@ export function useScrollPreservation(
       isPrependingRef.current = false;
     }
   }, [dataLength, containerRef]);
-}
+};

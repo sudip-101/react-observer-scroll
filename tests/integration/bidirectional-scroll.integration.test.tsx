@@ -1,22 +1,28 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, act } from '@testing-library/react';
 import { useState, useCallback } from 'react';
-import { BidirectionalScroll } from '../../src/components/BidirectionalScroll';
+import { BidirectionalScroll } from '../../lib/components/BidirectionalScroll';
 import { mockIntersectionObserver } from '../helpers/mock-intersection-observer';
 
-function createMessages(start: number, count: number) {
-  return Array.from({ length: count }, (_, i) => ({
+const createMessages = (start: number, count: number) =>
+  Array.from({ length: count }, (_, i) => ({
     id: start + i,
     text: `Message ${start + i}`,
   }));
-}
 
-function TestChat() {
+const TestChat = ({
+  onLoadPreviousSpy,
+  onLoadNextSpy,
+}: {
+  onLoadPreviousSpy?: ReturnType<typeof vi.fn>;
+  onLoadNextSpy?: ReturnType<typeof vi.fn>;
+} = {}) => {
   const [messages, setMessages] = useState(createMessages(50, 10));
   const [isLoadingPrevious, setIsLoadingPrevious] = useState(false);
   const [isLoadingNext, setIsLoadingNext] = useState(false);
 
   const loadPrevious = useCallback(async () => {
+    onLoadPreviousSpy?.();
     setIsLoadingPrevious(true);
     await Promise.resolve();
     setMessages((prev) => {
@@ -24,9 +30,10 @@ function TestChat() {
       return [...createMessages(oldest - 5, 5), ...prev];
     });
     setIsLoadingPrevious(false);
-  }, []);
+  }, [onLoadPreviousSpy]);
 
   const loadNext = useCallback(async () => {
+    onLoadNextSpy?.();
     setIsLoadingNext(true);
     await Promise.resolve();
     setMessages((prev) => {
@@ -34,7 +41,7 @@ function TestChat() {
       return [...prev, ...createMessages(newest + 1, 5)];
     });
     setIsLoadingNext(false);
-  }, []);
+  }, [onLoadNextSpy]);
 
   return (
     <BidirectionalScroll
@@ -45,8 +52,12 @@ function TestChat() {
       onLoadNext={loadNext}
       hasNext={messages[messages.length - 1]!.id < 100}
       isLoadingNext={isLoadingNext}
-      previousLoader={<div data-testid="prev-loader">Loading older...</div>}
-      nextLoader={<div data-testid="next-loader">Loading newer...</div>}
+      previousLoader={
+        <div data-testid="prev-loader">Loading older...</div>
+      }
+      nextLoader={
+        <div data-testid="next-loader">Loading newer...</div>
+      }
       style={{ height: '400px' }}
     >
       {messages.map((msg) => (
@@ -56,7 +67,7 @@ function TestChat() {
       ))}
     </BidirectionalScroll>
   );
-}
+};
 
 describe('BidirectionalScroll integration', () => {
   let io: ReturnType<typeof mockIntersectionObserver>;
@@ -70,7 +81,7 @@ describe('BidirectionalScroll integration', () => {
     vi.restoreAllMocks();
   });
 
-  it('loads data in both directions', async () => {
+  it('loads data in both directions sequentially', async () => {
     render(<TestChat />);
 
     // Initial messages 50-59
@@ -78,7 +89,6 @@ describe('BidirectionalScroll integration', () => {
     expect(screen.getByText('Message 59')).toBeInTheDocument();
 
     const sentinels = screen.getAllByTestId('ros-sentinel');
-    // Top sentinel for previous, bottom for next
     const topSentinel = sentinels[0]!;
 
     // Load older messages via top sentinel
@@ -101,5 +111,54 @@ describe('BidirectionalScroll integration', () => {
     // Should now have messages 45-64
     expect(screen.getByText('Message 45')).toBeInTheDocument();
     expect(screen.getByText('Message 60')).toBeInTheDocument();
+  });
+
+  it('never triggers both directions simultaneously', async () => {
+    const prevSpy = vi.fn();
+    const nextSpy = vi.fn();
+
+    render(
+      <TestChat onLoadPreviousSpy={prevSpy} onLoadNextSpy={nextSpy} />,
+    );
+
+    // Both sentinels exist
+    const sentinels = screen.getAllByTestId('ros-sentinel');
+    expect(sentinels).toHaveLength(2);
+
+    // Trigger top sentinel
+    await act(async () => {
+      io.triggerIntersection(sentinels[0]!, true);
+    });
+
+    // Only previous should have been called
+    expect(prevSpy).toHaveBeenCalledTimes(1);
+    expect(nextSpy).not.toHaveBeenCalled();
+  });
+
+  it('never shows both loaders at the same time', () => {
+    // Render with both loading states forced true to verify render guard
+    render(
+      <BidirectionalScroll
+        dataLength={10}
+        onLoadNext={vi.fn()}
+        hasNext={true}
+        isLoadingNext={true}
+        onLoadPrevious={vi.fn()}
+        hasPrevious={true}
+        isLoadingPrevious={true}
+        previousLoader={
+          <div data-testid="prev-loader">Loading older...</div>
+        }
+        nextLoader={
+          <div data-testid="next-loader">Loading newer...</div>
+        }
+      >
+        <div>Content</div>
+      </BidirectionalScroll>,
+    );
+
+    // Previous loader takes priority
+    expect(screen.getByTestId('prev-loader')).toBeInTheDocument();
+    expect(screen.queryByTestId('next-loader')).not.toBeInTheDocument();
   });
 });

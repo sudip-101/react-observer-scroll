@@ -21,13 +21,13 @@ import type { UseIntersectionObserverOptions } from '../types';
  * return <div ref={sentinelRef} />;
  * ```
  */
-export function useIntersectionObserver({
+export const useIntersectionObserver = ({
   threshold = 0,
   rootMargin = '0px',
   root = null,
   enabled = true,
   onIntersect,
-}: UseIntersectionObserverOptions): (node: Element | null) => void {
+}: UseIntersectionObserverOptions): ((node: Element | null) => void) => {
   const observerRef = useRef<IntersectionObserver | null>(null);
   const targetRef = useRef<Element | null>(null);
   const onIntersectRef = useRef(onIntersect);
@@ -88,4 +88,4 @@ export function useIntersectionObserver({
   }, []);
 
   return setTargetRef;
-}
+};

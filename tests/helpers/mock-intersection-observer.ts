@@ -14,7 +14,7 @@ interface MockObserverInstance {
 const observers = new Map<Element, MockObserverInstance>();
 let lastInstance: MockObserverInstance | null = null;
 
-export function mockIntersectionObserver() {
+export const mockIntersectionObserver = () => {
   // Must use `function` (not arrow) so it can be invoked with `new`
   const MockIO = vi.fn(function (
     this: MockObserverInstance,
@@ -40,17 +40,17 @@ export function mockIntersectionObserver() {
 
   vi.stubGlobal('IntersectionObserver', MockIO);
 
-  return {
+  const helper = {
     getConstructor: () => MockIO,
     getLastInstance: () => lastInstance,
     getObserverForElement: (el: Element) => observers.get(el),
 
     /** Simulate an element entering or leaving the viewport */
-    triggerIntersection(
+    triggerIntersection: (
       target: Element,
       isIntersecting: boolean,
       overrides: Partial<IntersectionObserverEntry> = {},
-    ) {
+    ) => {
       const observer = observers.get(target);
       if (!observer) throw new Error('Element is not being observed');
 
@@ -69,17 +69,19 @@ export function mockIntersectionObserver() {
     },
 
     /** Trigger intersection on all observed elements */
-    triggerAll(isIntersecting: boolean) {
+    triggerAll: (isIntersecting: boolean) => {
       for (const [target] of observers) {
-        this.triggerIntersection(target, isIntersecting);
+        helper.triggerIntersection(target, isIntersecting);
       }
     },
 
     /** Reset all state */
-    reset() {
+    reset: () => {
       observers.clear();
       lastInstance = null;
       MockIO.mockClear();
     },
   };
-}
+
+  return helper;
+};

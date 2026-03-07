@@ -1,9 +1,9 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { renderHook } from '@testing-library/react';
 import { useRef } from 'react';
-import { useScrollPreservation } from '../../src/hooks/useScrollPreservation';
+import { useScrollPreservation } from '../../lib/hooks/useScrollPreservation';
 
-function createMockContainer(scrollHeight: number, scrollTop: number) {
+const createMockContainer = (scrollHeight: number, scrollTop: number) => {
   const el = document.createElement('div');
   Object.defineProperty(el, 'scrollHeight', {
     get: () => scrollHeight,
@@ -27,7 +27,7 @@ function createMockContainer(scrollHeight: number, scrollTop: number) {
       });
     },
   };
-}
+};
 
 describe('useScrollPreservation', () => {
   let container: ReturnType<typeof createMockContainer>;

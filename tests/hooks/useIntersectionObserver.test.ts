@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
-import { useIntersectionObserver } from '../../src/hooks/useIntersectionObserver';
+import { useIntersectionObserver } from '../../lib/hooks/useIntersectionObserver';
 import { mockIntersectionObserver } from '../helpers/mock-intersection-observer';
 
 describe('useIntersectionObserver', () => {
