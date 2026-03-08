@@ -1,8 +1,8 @@
-import { defineConfig } from 'vite';
+import { defineConfig, type UserConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { resolve } from 'path';
 
-export default defineConfig(async ({ mode }) => {
+export default defineConfig(async ({ mode }): Promise<UserConfig> => {
   if (mode === 'lib') {
     const dts = (await import('vite-plugin-dts')).default;
     return {
@@ -10,6 +10,7 @@ export default defineConfig(async ({ mode }) => {
         react(),
         dts({ include: ['lib'], exclude: ['tests', 'src'] }),
       ],
+      publicDir: false,
       build: {
         lib: {
           entry: resolve(__dirname, 'lib/index.ts'),
