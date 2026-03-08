@@ -7,9 +7,8 @@ import { MessageBubble } from '../components/MessageBubble';
 import { MessageSkeletonGroup } from '../components/MessageBubbleSkeleton';
 import { ViewToggle } from '../components/ViewToggle';
 import { useMessages } from '../hooks/useMessages';
-
-import demoSource from './BidirectionalScrollDemo.tsx?raw';
 import hookSource from '../hooks/useMessages.ts?raw';
+import demoSource from './BidirectionalScrollDemo.tsx?raw';
 
 const codeFiles = [
   { name: 'BidirectionalScrollDemo.tsx', content: demoSource },
@@ -45,7 +44,11 @@ export const BidirectionalScrollDemo = () => {
   // useLayoutEffect runs after child effects (useImperativeHandle sets ref)
   // but before useEffect (where observers are created).
   useLayoutEffect(() => {
-    if (!isInitialLoading && containerRef.current && !hasScrolledInitial.current) {
+    if (
+      !isInitialLoading &&
+      containerRef.current &&
+      !hasScrolledInitial.current
+    ) {
       hasScrolledInitial.current = true;
       containerRef.current.scrollTop = containerRef.current.scrollHeight;
     }
@@ -102,7 +105,7 @@ export const BidirectionalScrollDemo = () => {
               onLoadPrevious={loadPrevious}
               hasPrevious={hasPrevious}
               isLoadingPrevious={isLoadingPrevious}
-              loader={<MessageSkeletonGroup length={2} />}
+              loader={<MessageSkeletonGroup length={4} />}
               onScrollIndicator={handleScrollIndicator}
               style={{ height: '500px', overflowY: 'auto' }}
               className="p-4"
