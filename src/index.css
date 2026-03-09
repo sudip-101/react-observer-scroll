@@ -14,6 +14,18 @@
   --color-accent-foreground: #171717;
   --color-card: #ffffff;
   --color-card-foreground: #0a0a0a;
+  --color-code-bg: #0F111A;
+  --color-code-plain: #BABED8;
+  --color-code-keyword: #C792EA;
+  --color-code-string: #C3E88D;
+  --color-code-comment: #464B5D;
+  --color-code-function: #82AAFF;
+  --color-code-number: #F78C6C;
+  --color-code-tag: #F07178;
+  --color-code-attr: #FFCB6B;
+  --color-code-type: #FFCB6B;
+  --color-code-operator: #89DDFF;
+  --color-code-punctuation: #89DDFF;
   --radius-sm: 0.25rem;
   --radius-md: 0.375rem;
   --radius-lg: 0.5rem;
@@ -31,6 +43,18 @@
   --color-accent-foreground: #fafafa;
   --color-card: #0a0a0a;
   --color-card-foreground: #fafafa;
+  --color-code-bg: #0F111A;
+  --color-code-plain: #BABED8;
+  --color-code-keyword: #C792EA;
+  --color-code-string: #C3E88D;
+  --color-code-comment: #464B5D;
+  --color-code-function: #82AAFF;
+  --color-code-number: #F78C6C;
+  --color-code-tag: #F07178;
+  --color-code-attr: #FFCB6B;
+  --color-code-type: #FFCB6B;
+  --color-code-operator: #89DDFF;
+  --color-code-punctuation: #89DDFF;
 }
 
 body {
